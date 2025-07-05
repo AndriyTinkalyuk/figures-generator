@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Three.js Cube Generator</title>
+    <link rel="stylesheet" href="./src/style.css">
+  </head>
+  <body>
+    <div id="ui">
+      <input type="number" id="x" placeholder="X" min="1" value="3" />
+      <input type="number" id="y" placeholder="Y" min="1" value="3" />
+      <input type="number" id="z" placeholder="Z" min="1" value="3" />
+      <button id="generate">Generate</button>
+      <button id="explode">Explode</button>
+      <button id="collect">Collect</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script src="./src/main.js" type="module"></script>
+  </body>
+</html>
