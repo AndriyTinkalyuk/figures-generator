@@ -1,22 +1,21 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
+import gsap from 'gsap';
 
 const canvas = document.getElementById('canvas');
 const generateButton = document.getElementById('generate');
 const explodeButton = document.getElementById('explode');
 const collectButton = document.getElementById('collect');
+const fullscreenButton = document.getElementById("fullscreen")
 
-
-//scene
+// scene
 const scene = new THREE.Scene();
 
-//camera 
-
+// camera
 const sizes = { 
   width : window.innerWidth,
   height: window.innerHeight
-}
+};
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -24,14 +23,12 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   100
 );
-
 camera.position.set(10, 10, 10);
 
-// Renderer
-
+// renderer
 const renderer = new THREE.WebGLRenderer({ canvas: canvas });
 renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 const controls = new OrbitControls(camera, renderer.domElement);
 
@@ -48,6 +45,8 @@ const textures = [
   textureLoader.load('textures/water.jpg'),
   textureLoader.load('textures/fire.jpg')
 ];
+
+textures.forEach(texture => texture.colorSpace = THREE.SRGBColorSpace)
 
 const meshes = [];
 
@@ -76,10 +75,7 @@ function generateCube(x, y, z) {
         mesh.userData = {
           initialPos: mesh.position.clone(),
           initialRot: mesh.rotation.clone(),
-          targetPos: mesh.position.clone(),
-          rotationSpeed: new THREE.Vector3(0, 0, 0),
-          isExploded: false,
-          lerpProgress: 0, 
+          isAnimating: false,
         };
         scene.add(mesh);
         meshes.push(mesh);
@@ -93,116 +89,107 @@ generateButton.addEventListener('click', () => {
   const y = +document.getElementById('y').value;
   const z = +document.getElementById('z').value;
   generateCube(x, y, z);
-})
+});
 
 explodeButton.addEventListener("click", () => {
   for (let mesh of meshes) {
+    if (mesh.userData.isAnimating) continue; 
+
     const dir = new THREE.Vector3(
       Math.random() - 0.5,
       Math.random() - 0.5,
       Math.random() - 0.5
-    )
-      .normalize()
-      .multiplyScalar(5 + Math.random() * 3);
+    ).normalize().multiplyScalar(5 + Math.random() * 3);
 
-    mesh.userData.targetPos = mesh.position.clone().add(dir);
-    mesh.userData.rotationSpeed = new THREE.Vector3(
-      (Math.random() - 0.5) * Math.PI * 2,
-      (Math.random() - 0.5) * Math.PI * 2,
-      (Math.random() - 0.5) * Math.PI * 2
-    );
-    mesh.userData.isExploded = true;
-    mesh.userData.lerpProgress = 0;
+    const targetPos = mesh.position.clone().add(dir);
+
+    mesh.userData.isAnimating = true;
+
+    // Анімуємо позицію
+    gsap.to(mesh.position, {
+      x: targetPos.x,
+      y: targetPos.y,
+      z: targetPos.z,
+      duration: 2,
+      ease: "power2.out",
+    });
+
+    // Анімуємо обертання (додатково + випадкове обертання)
+    gsap.to(mesh.rotation, {
+      x: mesh.rotation.x + (Math.random() - 0.5) * Math.PI * 4,
+      y: mesh.rotation.y + (Math.random() - 0.5) * Math.PI * 4,
+      z: mesh.rotation.z + (Math.random() - 0.5) * Math.PI * 4,
+      duration: 2,
+      ease: "power2.out",
+      onComplete: () => {
+        mesh.userData.isAnimating = false;
+      }
+    });
   }
-}) 
+});
 
 collectButton.addEventListener("click", () => {
   for (let mesh of meshes) {
-    mesh.userData.targetPos = mesh.userData.initialPos.clone();
-    mesh.userData.isExploded = false;
-    mesh.userData.lerpProgress = 0;
+    if (mesh.userData.isAnimating) continue;
 
-       mesh.rotation.copy(mesh.userData.initialRot);
+    mesh.userData.isAnimating = true;
+
+    gsap.to(mesh.position, {
+      x: mesh.userData.initialPos.x,
+      y: mesh.userData.initialPos.y,
+      z: mesh.userData.initialPos.z,
+      duration: 2,
+      ease: "power2.inOut"
+    });
+
+    gsap.to(mesh.rotation, {
+      x: mesh.userData.initialRot.x,
+      y: mesh.userData.initialRot.y,
+      z: mesh.userData.initialRot.z,
+      duration: 2,
+      ease: "power2.inOut",
+      onComplete: () => {
+        mesh.userData.isAnimating = false;
+      }
+    });
   }
-})
+});
 
-const clock = new THREE.Clock();
+// Анімаційний цикл лише для рендера і оновлення контролів
 
 function animate() {
-
-  const delta = clock.getDelta();
   requestAnimationFrame(animate);
-
-  for (let mesh of meshes) {
-    const userData = mesh.userData;
-    const target = userData.targetPos;
-
-    if (target) {
-      // Обчислюємо відстань до цілі
-      const distance = mesh.position.distanceTo(target);
-
-      // Плавне наближення до цілі
-      mesh.position.lerp(target, 0.01);
-
-      if (distance < 0.1) {
-  mesh.position.copy(target);
-  userData.targetPos = null;
-
-  // Зупинити обертання повністю після досягнення цілі
-  userData.rotationSpeed.set(0, 0, 0);
-}
-
-    }
-
-    // Обертання: тільки під час вибуху або поступового гальмування
-    if (userData.rotationSpeed.length() > 0.01) {
-      mesh.rotation.x += userData.rotationSpeed.x * delta;
-      mesh.rotation.y += userData.rotationSpeed.y * delta;
-      mesh.rotation.z += userData.rotationSpeed.z * delta;
-
-      // Якщо не вибух — поступово зменшуємо швидкість
-    if (userData.isExploded) {
-userData.rotationSpeed.multiplyScalar(0.98);
-
-} else {
-  // Коли не вибух — просто загальмовуємо як раніше
-  userData.rotationSpeed.multiplyScalar(0.9);
-}
-    } else {
-      userData.rotationSpeed.set(0, 0, 0); // гарантована зупинка
-    }
-  }
-
   controls.update();
   renderer.render(scene, camera);
 }
 
 animate();
 
-
-
-//resize
+// resize
 
 window.addEventListener('resize', () => { 
-  sizes.width = window.innerWidth
-  sizes.height = window.innerHeight
+  sizes.width = window.innerWidth;
+  sizes.height = window.innerHeight;
 
-  //update camera
-  camera.aspect = sizes.width / sizes.height
-  camera.updateProjectionMatrix()
+  camera.aspect = sizes.width / sizes.height;
+  camera.updateProjectionMatrix();
 
-   //update render
   renderer.setSize(sizes.width, sizes.height);
-  //update PixelRatio
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+});
+
+fullscreenButton.addEventListener('click', () => { 
+   const fullscreenElement = document.fullscreenElement;
+
+  if (!fullscreenElement) { 
+    canvas.requestFullscreen();
+  }
 })
 
 window.addEventListener("dblclick", () => { 
-  const fullscreenElement = document.fullscreenElement 
+     const fullscreenElement = document.fullscreenElement;
 
-  if(!fullscreenElement) { 
-    canvas.requestFullscreen()
-    return
+  if (fullscreenElement) { 
+    document.exitFullscreen();
   }
-  document.exitFullscreen()
-})
+});

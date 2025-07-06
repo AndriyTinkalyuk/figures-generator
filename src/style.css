@@ -1,6 +1,7 @@
 * { 
   padding: 0;
   margin: 0;
+  font-size: 16px;
 }
 
 html, 
@@ -13,4 +14,29 @@ body {
   left: 0;
   z-index: 10;
   background: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+}
+
+#fullscreen { 
+  position: fixed;
+  bottom: 5px;
+  right: 5px;
+  z-index: 10;
+}
+
+button {
+  padding: 5px 10px;
+  border: 1px solid white;
+  background-color: #dbdbdb;
+  color: rgb(34, 34, 34);
+}
+
+button:hover { 
+  color: black;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+input { 
+  padding: 5px 0;
 }
