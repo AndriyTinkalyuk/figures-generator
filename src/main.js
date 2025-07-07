@@ -31,6 +31,7 @@ renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true
 
 const geometries = [
   new THREE.BoxGeometry(1, 1, 1),

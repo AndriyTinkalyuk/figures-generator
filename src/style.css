@@ -37,6 +37,21 @@ button:hover {
   cursor: pointer;
 }
 
+.button-group { 
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 5px;
+}
+
 input { 
   padding: 5px 0;
+}
+
+@media (max-width: 621px) {
+  input {
+    width: 100%;
+    margin-top: 5px;
+  }
 }
