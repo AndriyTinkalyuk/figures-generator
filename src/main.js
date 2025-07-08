@@ -76,7 +76,6 @@ function generateCube(x, y, z) {
         mesh.userData = {
           initialPos: mesh.position.clone(),
           initialRot: mesh.rotation.clone(),
-          isAnimating: false,
         };
         scene.add(mesh);
         meshes.push(mesh);
@@ -94,7 +93,8 @@ generateButton.addEventListener('click', () => {
 
 explodeButton.addEventListener("click", () => {
   for (let mesh of meshes) {
-    if (mesh.userData.isAnimating) continue; 
+    gsap.killTweensOf(mesh.position);
+    gsap.killTweensOf(mesh.rotation);
 
     const dir = new THREE.Vector3(
       Math.random() - 0.5,
@@ -104,7 +104,6 @@ explodeButton.addEventListener("click", () => {
 
     const targetPos = mesh.position.clone().add(dir);
 
-    mesh.userData.isAnimating = true;
 
     // Анімуємо позицію
     gsap.to(mesh.position, {
@@ -122,18 +121,14 @@ explodeButton.addEventListener("click", () => {
       z: mesh.rotation.z + (Math.random() - 0.5) * Math.PI * 4,
       duration: 2,
       ease: "power2.out",
-      onComplete: () => {
-        mesh.userData.isAnimating = false;
-      }
     });
   }
 });
 
 collectButton.addEventListener("click", () => {
   for (let mesh of meshes) {
-    if (mesh.userData.isAnimating) continue;
-
-    mesh.userData.isAnimating = true;
+    gsap.killTweensOf(mesh.position);
+    gsap.killTweensOf(mesh.rotation);
 
     gsap.to(mesh.position, {
       x: mesh.userData.initialPos.x,
@@ -149,9 +144,6 @@ collectButton.addEventListener("click", () => {
       z: mesh.userData.initialRot.z,
       duration: 2,
       ease: "power2.inOut",
-      onComplete: () => {
-        mesh.userData.isAnimating = false;
-      }
     });
   }
 });
